@@ -785,9 +785,11 @@ CRITICAL: Ensure valid JSON syntax:
       case 'sync_completed':
         this.elements.syncIndicator.style.display = 'none';
         this.elements.syncStatus.textContent = 'Synced';
-        if (data && data.uploaded > 0) {
-          console.log(`Sync completed: ${data.uploaded} cards uploaded`);
+        if (data && (data.uploaded > 0 || data.downloaded > 0)) {
+          console.log(`Sync completed: ${data.uploaded} uploaded, ${data.downloaded} downloaded`);
         }
+        // Refresh UI to show updated card count
+        this.updateUI();
         break;
 
       case 'sync_failed':
