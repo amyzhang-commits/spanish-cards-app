@@ -10,16 +10,7 @@ class SyncEngine {
   }
 
   getSyncEndpoint() {
-  // Check for custom sync endpoint in localStorage
-  const customEndpoint = localStorage.getItem('spanish_cards_sync_endpoint');
-  if (customEndpoint) {
-    return customEndpoint;
-  }
-
-  // Default endpoints
-  return window.location.hostname === 'localhost'
-    ? 'http://localhost:8000'
-    : 'https://spanish-cards-production.up.railway.app';
+  return 'https://spanish-cards-production.up.railway.app';
 }
 
   getDeviceId() {
@@ -75,37 +66,53 @@ class SyncEngine {
     try {
       console.log('Starting sync process...');
 
-      // Get unsynced local cards
+      let uploadedCount = 0;
+      let downloadedCount = 0;
+
+      // STEP 1: Upload unsynced local cards
       const unsyncedCards = await cardDB.getUnsyncedCards();
 
-      if (unsyncedCards.length === 0) {
-        console.log('No cards to sync');
-        this.syncInProgress = false;
-        this.notifySyncListeners('sync_completed', { uploaded: 0, downloaded: 0 });
-        return true;
+      if (unsyncedCards.length > 0) {
+        console.log(`Uploading ${unsyncedCards.length} local cards...`);
+        const uploadResult = await this.uploadCards(unsyncedCards);
+
+        if (uploadResult.success) {
+          // Mark cards as synced
+          const cardIds = unsyncedCards.map(card => card.id);
+          await cardDB.markCardsSynced(cardIds);
+          uploadedCount = unsyncedCards.length;
+          console.log(`${uploadedCount} cards uploaded`);
+        } else {
+          throw new Error(uploadResult.error || 'Upload failed');
+        }
       }
 
-      // Upload local changes
-      const uploadResult = await this.uploadCards(unsyncedCards);
+      // STEP 2: Download cards from server
+      console.log('Downloading cards from server...');
+      const downloadResult = await this.downloadCards();
 
-      if (uploadResult.success) {
-        // Mark cards as synced
-        const cardIds = unsyncedCards.map(card => card.id);
-        await cardDB.markCardsSynced(cardIds);
+      if (downloadResult.success && downloadResult.cards) {
+        console.log(`Received ${downloadResult.cards.length} cards from server`);
 
-        // Update last sync timestamp
-        await cardDB.setSyncMetadata('last_sync', Date.now());
+        // Save downloaded cards to local database
+        for (const card of downloadResult.cards) {
+          await cardDB.saveCard(card, true); // true = mark as synced
+        }
 
-        console.log(`Sync completed: ${unsyncedCards.length} cards uploaded`);
-        this.notifySyncListeners('sync_completed', {
-          uploaded: unsyncedCards.length,
-          downloaded: 0
-        });
-
-        return true;
-      } else {
-        throw new Error(uploadResult.error || 'Upload failed');
+        downloadedCount = downloadResult.cards.length;
+        console.log(`${downloadedCount} cards downloaded`);
       }
+
+      // Update last sync timestamp
+      await cardDB.setSyncMetadata('last_sync', Date.now());
+
+      console.log(`Sync completed: ${uploadedCount} uploaded, ${downloadedCount} downloaded`);
+      this.notifySyncListeners('sync_completed', {
+        uploaded: uploadedCount,
+        downloaded: downloadedCount
+      });
+
+      return true;
 
     } catch (error) {
       console.error('Sync failed:', error);
@@ -140,6 +147,29 @@ class SyncEngine {
 
     } catch (error) {
       console.error('Upload failed:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Download cards from server
+  async downloadCards() {
+    try {
+      const response = await fetch(`${this.syncEndpoint}/api/cards`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return { success: true, cards: result.cards || [] };
+
+    } catch (error) {
+      console.error('Download failed:', error);
       return { success: false, error: error.message };
     }
   }
