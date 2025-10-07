@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Cards - Spanish Verb Trainer</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Manage your Spanish flashcard collection">
+    <meta name="theme-color" content="#1e40af">
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Icons for PWA -->
+    <link rel="icon" type="image/x-icon" href="/icons/favicon.ico">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Offline Status Indicator -->
+        <div id="offlineIndicator" class="offline-indicator" style="display: none;">
+            📱 Working Offline
+        </div>
+
+        <!-- Sync Status Indicator -->
+        <div id="syncIndicator" class="sync-indicator" style="display: none;">
+            🔄 Syncing...
+        </div>
+
+        <header>
+            <h1>🇪🇸 <span class="gradient-text">Spanish Verb Trainer</span></h1>
+            <div class="status-bar">
+                <span id="cardCount">0 cards stored locally</span>
+                <span id="syncStatus">Ready</span>
+            </div>
+            <nav>
+                <a href="index.html" class="nav-link">Generate Verbs</a>
+                <a href="sentences.html" class="nav-link">Process Sentences</a>
+                <a href="study.html" class="nav-link">Study Cards</a>
+                <a href="manage.html" class="nav-link active">Manage Cards</a>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Dashboard Section -->
+            <section class="manage-dashboard">
+                <h2>🗂️ Manage Your Cards</h2>
+                <p>View, edit, organize, and clean up your flashcard collection</p>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📚</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalCards">0</div>
+                            <div class="stat-label">Total Cards</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">🔤</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="verbCards">0</div>
+                            <div class="stat-label">Verb Cards</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">💬</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="sentenceCards">0</div>
+                            <div class="stat-label">Sentence Cards</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">🔄</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="unsyncedCards">0</div>
+                            <div class="stat-label">Unsynced</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card" id="duplicatesCard" style="display: none;">
+                        <div class="stat-icon">⚠️</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="duplicateCards">0</div>
+                            <div class="stat-label">Duplicates Found</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <button id="findDuplicatesBtn" class="btn-secondary">
+                        🔍 Find Duplicates
+                    </button>
+                    <button id="exportBtn" class="btn-secondary">
+                        📤 Export Cards
+                    </button>
+                    <button id="clearAllBtn" class="btn-danger">
+                        🗑️ Clear All Cards
+                    </button>
+                </div>
+            </section>
+
+            <!-- Filter Section -->
+            <section class="manage-filters">
+                <h3>🔍 Search & Filter</h3>
+
+                <div class="filter-row">
+                    <div class="search-group">
+                        <input type="text" id="searchInput" placeholder="Search cards..." class="search-input">
+                    </div>
+
+                    <div class="filter-group">
+                        <select id="typeFilter" class="filter-select">
+                            <option value="">All Types</option>
+                            <option value="verb">Verb Cards</option>
+                            <option value="sentence">Sentence Cards</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <select id="regularityFilter" class="filter-select">
+                            <option value="">All Verbs</option>
+                            <option value="regular">Regular Only</option>
+                            <option value="irregular">Irregular Only</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <select id="tenseMoodFilter" class="filter-select">
+                            <option value="">All Tenses & Moods</option>
+
+                            <optgroup label="📊 Indicative Mood">
+                                <option value="present_indicative">Present Indicative</option>
+                                <option value="preterite_indicative">Preterite</option>
+                                <option value="imperfect_indicative">Imperfect</option>
+                                <option value="future_indicative">Future</option>
+                                <option value="present_perfect_indicative">Present Perfect</option>
+                                <option value="past_perfect_indicative">Past Perfect</option>
+                                <option value="future_perfect_indicative">Future Perfect</option>
+                            </optgroup>
+
+                            <optgroup label="🤔 Subjunctive Mood">
+                                <option value="present_subjunctive">Present Subjunctive</option>
+                                <option value="imperfect_subjunctive">Imperfect Subjunctive</option>
+                                <option value="future_subjunctive">Future Subjunctive</option>
+                                <option value="present_perfect_subjunctive">Present Perfect Subjunctive</option>
+                                <option value="past_perfect_subjunctive">Past Perfect Subjunctive</option>
+                            </optgroup>
+
+                            <optgroup label="💭 Conditional Mood">
+                                <option value="simple_conditional">Simple Conditional</option>
+                                <option value="perfect_conditional">Perfect Conditional</option>
+                            </optgroup>
+
+                            <optgroup label="⚡ Imperative Mood">
+                                <option value="affirmative_imperative">Affirmative Imperative</option>
+                                <option value="negative_imperative">Negative Imperative</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <select id="syncFilter" class="filter-select">
+                            <option value="">All Cards</option>
+                            <option value="local">Local Only</option>
+                            <option value="synced">Synced Only</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="results-info">
+                    <span id="filteredCount">0 cards found</span>
+                    <div class="bulk-actions" id="bulkActions" style="display: none;">
+                        <button id="selectAllBtn" class="btn-small">Select All</button>
+                        <button id="deleteSelectedBtn" class="btn-danger-small">Delete Selected</button>
+                        <span id="selectedCount">0 selected</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Cards Grid -->
+            <section class="cards-grid-section">
+                <div id="cardsGrid" class="cards-grid">
+                    <!-- Cards will be populated here -->
+                </div>
+
+                <div id="loadingCards" class="loading-cards" style="display: none;">
+                    <div class="spinner-large">🔄</div>
+                    <p>Loading cards...</p>
+                </div>
+
+                <div id="noCards" class="no-cards" style="display: none;">
+                    <p>No cards found matching your filters.</p>
+                </div>
+            </section>
+
+            <!-- Duplicates Modal -->
+            <div id="duplicatesModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>⚠️ Duplicate Cards Found</h3>
+                        <button id="closeDuplicatesModal" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Found <span id="duplicateCount">0</span> duplicate cards. Review and delete the ones you don't want to keep:</p>
+                        <div id="duplicatesList" class="duplicates-list">
+                            <!-- Duplicate groups will be populated here -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="deleteAllDuplicatesBtn" class="btn-danger">
+                            🗑️ Delete All Duplicates
+                        </button>
+                        <button id="cancelDuplicatesBtn" class="btn-secondary">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/db.js"></script>
+    <script src="/js/sync.js"></script>
+    <script src="/js/manage.js"></script>
+
+    <!-- PWA Registration -->
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch((registrationError) => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
