@@ -2,7 +2,7 @@
   "name": "Spanish Verb Trainer",
   "short_name": "SpanishCards",
   "description": "Offline-first Spanish verb conjugation trainer with Anki-style flashcards",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1e40af",
@@ -22,7 +22,7 @@
       "purpose": "any maskable"
     }
   ],
-  "scope": "/",
+  "scope": "./",
   "lang": "en-US",
   "prefer_related_applications": false
 }

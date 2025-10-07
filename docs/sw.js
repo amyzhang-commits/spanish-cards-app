@@ -1,13 +1,13 @@
 // Service Worker for Spanish Verb Trainer PWA
 const CACHE_NAME = 'spanish-cards-v2';
 const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/css/style.css',
-  '/js/app.js',
-  '/js/db.js',
-  '/js/sync.js',
-  '/manifest.json'
+  './',
+  './index.html',
+  './css/style.css',
+  './js/app.js',
+  './js/db.js',
+  './js/sync.js',
+  './manifest.json'
 ];
 
 // Install event - cache app shell

@@ -8,14 +8,14 @@
     <!-- PWA Meta Tags -->
     <meta name="description" content="Offline-first Spanish verb conjugation trainer with Anki-style flashcards">
     <meta name="theme-color" content="#1e40af">
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="manifest.json">
 
     <!-- Icons for PWA -->
-    <link rel="icon" type="image/x-icon" href="/icons/favicon.ico">
-    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="icon" type="image/x-icon" href="icons/favicon.ico">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
 
     <!-- Styles -->
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div class="container">
@@ -313,16 +313,16 @@
     </div>
 
     <!-- Scripts -->
-    <script src="/js/db.js"></script>
-    <script src="/js/sync.js"></script>
-    <script src="/js/app.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/sync.js"></script>
+    <script src="js/app.js"></script>
 
     <!-- PWA Registration -->
     <script>
         // Register service worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
+                navigator.serviceWorker.register('sw.js')
                     .then((registration) => {
                         console.log('SW registered: ', registration);
                     })
