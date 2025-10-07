@@ -354,5 +354,23 @@
             document.getElementById('installPrompt').style.display = 'none';
         });
     </script>
+
+    <!-- Debug Sync Button -->
+    <button onclick="testSync()" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; padding: 20px; background: red; color: white; font-size: 18px;">
+        TEST SYNC
+    </button>
+
+    <script>
+    async function testSync() {
+        alert('Sync endpoint: ' + syncEngine.syncEndpoint);
+        alert('Online: ' + navigator.onLine);
+        const unsyncedCards = await cardDB.getUnsyncedCards();
+        alert('Unsynced cards: ' + unsyncedCards.length);
+        const allCards = await cardDB.getCards();
+        alert('Total cards in IndexedDB: ' + allCards.length);
+        await syncEngine.syncCards();
+        alert('Sync attempted!');
+    }
+    </script>
 </body>
 </html>
