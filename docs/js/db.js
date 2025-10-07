@@ -144,6 +144,32 @@ class CardDatabase {
     }
   }
 
+  // Save a single card (used for syncing from server)
+  async saveCard(card, markAsSynced = false) {
+    const transaction = this.db.transaction(['cards'], 'readwrite');
+    const store = transaction.objectStore('cards');
+
+    return new Promise((resolve, reject) => {
+      // Ensure sync_status is set
+      if (markAsSynced) {
+        card.sync_status = 'synced';
+      } else if (!card.sync_status) {
+        card.sync_status = 'local';
+      }
+
+      // Use put instead of add to allow updates of existing cards
+      const request = store.put(card);
+
+      request.onsuccess = () => {
+        resolve(card);
+      };
+
+      request.onerror = () => {
+        reject(request.error);
+      };
+    });
+  }
+
   // Get all cards with optional filtering
   async getCards(filters = {}) {
     const transaction = this.db.transaction(['cards'], 'readonly');
