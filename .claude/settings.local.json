@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/amyzhang/Documents/Projects/spanish-cards/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

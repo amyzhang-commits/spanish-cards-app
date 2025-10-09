@@ -214,7 +214,7 @@ Generate exactly 6 conjugations for all pronouns. Use correct ${tense} ${mood} f
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gemma3n:latest',
+        model: 'aya:8b',
         prompt: prompt,
         stream: false
       })
@@ -501,7 +501,7 @@ CRITICAL: Ensure valid JSON syntax:
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gemma3n:latest',
+        model: 'aya:8b',
         prompt: prompt,
         stream: false
       })
