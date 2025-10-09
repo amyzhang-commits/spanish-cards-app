@@ -181,6 +181,11 @@ class CardDatabase {
       request.onsuccess = () => {
         let cards = request.result;
 
+        // Filter out deleted cards (unless explicitly requested)
+        if (!filters.includeDeleted) {
+          cards = cards.filter(card => !card.deleted);
+        }
+
         // Apply filters
         if (filters.type) {
           cards = cards.filter(card => card.type === filters.type);
@@ -220,21 +225,73 @@ class CardDatabase {
     });
   }
 
-  // Delete a card
+  // Delete a card (soft delete - marks as deleted for sync)
   async deleteCard(cardId) {
+    const transaction = this.db.transaction(['cards'], 'readwrite');
+    const store = transaction.objectStore('cards');
+
+    return new Promise((resolve, reject) => {
+      const getRequest = store.get(cardId);
+
+      getRequest.onsuccess = () => {
+        const card = getRequest.result;
+        if (card) {
+          // Soft delete: mark as deleted and needs sync
+          card.deleted = true;
+          card.deleted_at = Date.now();
+          card.modified_at = Date.now();
+          card.sync_status = 'local'; // Needs to sync this deletion
+
+          const putRequest = store.put(card);
+          putRequest.onsuccess = () => {
+            console.log(`Deleted card: ${cardId}`);
+            resolve(true);
+          };
+          putRequest.onerror = () => reject(putRequest.error);
+        } else {
+          resolve(false);
+        }
+      };
+
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+  }
+
+  // Permanently delete a card (after sync confirmation)
+  async hardDeleteCard(cardId) {
     const transaction = this.db.transaction(['cards'], 'readwrite');
     const store = transaction.objectStore('cards');
 
     try {
       await store.delete(cardId);
-      await transaction.complete;
-      console.log(`Deleted card: ${cardId}`);
+      console.log(`Hard deleted card: ${cardId}`);
       return true;
 
     } catch (error) {
-      console.error('Error deleting card:', error);
+      console.error('Error hard deleting card:', error);
       throw error;
     }
+  }
+
+  // Get deleted cards that need to be synced
+  async getDeletedCards() {
+    const transaction = this.db.transaction(['cards'], 'readonly');
+    const store = transaction.objectStore('cards');
+
+    return new Promise((resolve, reject) => {
+      const request = store.getAll();
+
+      request.onsuccess = () => {
+        const deletedCards = request.result.filter(card =>
+          card.deleted === true && card.sync_status === 'local'
+        );
+        resolve(deletedCards);
+      };
+
+      request.onerror = () => {
+        reject(request.error);
+      };
+    });
   }
 
   // Get cards that need syncing

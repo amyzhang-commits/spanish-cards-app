@@ -67,21 +67,29 @@ class SyncEngine {
       console.log('Starting sync process...');
 
       let uploadedCount = 0;
+      let deletedCount = 0;
       let downloadedCount = 0;
 
-      // STEP 1: Upload unsynced local cards
+      // STEP 1: Upload unsynced local cards (including deletions)
       const unsyncedCards = await cardDB.getUnsyncedCards();
 
       if (unsyncedCards.length > 0) {
-        console.log(`Uploading ${unsyncedCards.length} local cards...`);
+        console.log(`Uploading ${unsyncedCards.length} local cards (including deletions)...`);
         const uploadResult = await this.uploadCards(unsyncedCards);
 
         if (uploadResult.success) {
-          // Mark cards as synced
-          const cardIds = unsyncedCards.map(card => card.id);
-          await cardDB.markCardsSynced(cardIds);
-          uploadedCount = unsyncedCards.length;
-          console.log(`${uploadedCount} cards uploaded`);
+          // Mark cards as synced, and hard delete if they were deleted
+          for (const card of unsyncedCards) {
+            if (card.deleted) {
+              await cardDB.hardDeleteCard(card.id);
+              deletedCount++;
+            } else {
+              await cardDB.markCardsSynced([card.id]);
+            }
+          }
+
+          uploadedCount = unsyncedCards.filter(c => !c.deleted).length;
+          console.log(`${uploadedCount} cards uploaded, ${deletedCount} deletions synced`);
         } else {
           throw new Error(uploadResult.error || 'Upload failed');
         }
@@ -94,21 +102,28 @@ class SyncEngine {
       if (downloadResult.success && downloadResult.cards) {
         console.log(`Received ${downloadResult.cards.length} cards from server`);
 
-        // Save downloaded cards to local database
+        // Process downloaded cards
         for (const card of downloadResult.cards) {
-          await cardDB.saveCard(card, true); // true = mark as synced
+          if (card.deleted) {
+            // If server says card is deleted, remove it locally
+            await cardDB.hardDeleteCard(card.id);
+          } else {
+            // Save/update card locally
+            await cardDB.saveCard(card, true); // true = mark as synced
+          }
         }
 
-        downloadedCount = downloadResult.cards.length;
+        downloadedCount = downloadResult.cards.filter(c => !c.deleted).length;
         console.log(`${downloadedCount} cards downloaded`);
       }
 
       // Update last sync timestamp
       await cardDB.setSyncMetadata('last_sync', Date.now());
 
-      console.log(`Sync completed: ${uploadedCount} uploaded, ${downloadedCount} downloaded`);
+      console.log(`Sync completed: ${uploadedCount} uploaded, ${deletedCount} deleted, ${downloadedCount} downloaded`);
       this.notifySyncListeners('sync_completed', {
         uploaded: uploadedCount,
+        deleted: deletedCount,
         downloaded: downloadedCount
       });
 
