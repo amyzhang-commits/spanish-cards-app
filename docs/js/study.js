@@ -45,9 +45,11 @@ class StudyApp {
       regularityRadios: document.querySelectorAll('input[name="regularity"]'),
       verbSelect: document.getElementById('verbSelect'),
       tenseMoodSelect: document.getElementById('tenseMoodSelect'),
+      setSelect: document.getElementById('setSelect'),
       regularityGroup: document.getElementById('regularityGroup'),
       verbGroup: document.getElementById('verbGroup'),
       tenseMoodGroup: document.getElementById('tenseMoodGroup'),
+      setGroup: document.getElementById('setGroup'),
 
       // Session info
       matchingCount: document.getElementById('matchingCount'),
@@ -97,6 +99,7 @@ class StudyApp {
 
     this.elements.verbSelect.addEventListener('change', () => this.updateMatchingCount());
     this.elements.tenseMoodSelect.addEventListener('change', () => this.updateMatchingCount());
+    this.elements.setSelect.addEventListener('change', () => this.updateMatchingCount());
 
     // Study session controls
     this.elements.startStudyBtn.addEventListener('click', () => this.startStudySession());
@@ -128,6 +131,15 @@ class StudyApp {
         this.elements.verbSelect.appendChild(option);
       });
 
+      // Populate set dropdown
+      this.elements.setSelect.innerHTML = '<option value="">All Sets</option>';
+      filterOptions.sets.forEach(setName => {
+        const option = document.createElement('option');
+        option.value = setName;
+        option.textContent = setName;
+        this.elements.setSelect.appendChild(option);
+      });
+
       // Note: tenseMoodSelect is already populated in HTML with all possible combinations
       // Initial count update
       this.updateMatchingCount();
@@ -152,10 +164,13 @@ class StudyApp {
 
     // Show/hide verb-specific filters
     const showVerbFilters = cardType === 'all' || cardType === 'verb';
+    // Show/hide sentence-specific filters
+    const showSentenceFilters = cardType === 'all' || cardType === 'sentence';
 
     this.elements.regularityGroup.style.display = showVerbFilters ? 'block' : 'none';
     this.elements.verbGroup.style.display = showVerbFilters ? 'block' : 'none';
     this.elements.tenseMoodGroup.style.display = showVerbFilters ? 'block' : 'none';
+    this.elements.setGroup.style.display = showSentenceFilters ? 'block' : 'none';
 
     this.updateMatchingCount();
   }
@@ -212,6 +227,13 @@ class StudyApp {
           filters.tense = tense;
           filters.mood = mood;
         }
+      }
+    }
+
+    if (cardType === 'all' || cardType === 'sentence') {
+      const setName = this.elements.setSelect.value;
+      if (setName) {
+        filters.set_name = setName;
       }
     }
 

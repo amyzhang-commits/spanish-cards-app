@@ -1,5 +1,5 @@
 // Service Worker for Spanish Verb Trainer PWA
-const CACHE_NAME = 'spanish-cards-v6';
+const CACHE_NAME = 'spanish-cards-v7';
 const APP_SHELL = [
   './',
   './index.html',

@@ -2,7 +2,7 @@
 class CardDatabase {
   constructor() {
     this.dbName = 'SpanishCardsDB';
-    this.version = 1;
+    this.version = 2;
     this.db = null;
   }
 
@@ -42,6 +42,7 @@ class CardDatabase {
           cardsStore.createIndex('mood', 'mood', { unique: false });
           cardsStore.createIndex('is_regular', 'is_regular', { unique: false });
           cardsStore.createIndex('tense_mood', ['tense', 'mood'], { unique: false });
+          cardsStore.createIndex('set_name', 'set_name', { unique: false });
         }
 
         // Study sessions store
@@ -125,6 +126,7 @@ class CardDatabase {
           english_translation: sentence.english_translation,
           grammar_notes: sentence.grammar_notes || sentence.verb_info || '',
           original_sentence: sentence.original_sentence || '',
+          set_name: sentence.set_name || '',
           created_at: timestamp,
           modified_at: timestamp,
           sync_status: 'local'
@@ -211,6 +213,10 @@ class CardDatabase {
 
         if (filters.verbs && Array.isArray(filters.verbs)) {
           cards = cards.filter(card => filters.verbs.includes(card.verb));
+        }
+
+        if (filters.set_name) {
+          cards = cards.filter(card => card.set_name === filters.set_name);
         }
 
         // Sort by creation date (newest first)
@@ -433,17 +439,26 @@ class CardDatabase {
   // Get unique values for filtering (useful for study mode)
   async getFilterOptions() {
     const verbCards = await this.getCards({ type: 'verb' });
+    const sentenceCards = await this.getCards({ type: 'sentence' });
 
     const uniqueVerbs = [...new Set(verbCards.map(card => card.verb))].sort();
     const uniqueTenses = [...new Set(verbCards.map(card => card.tense))].filter(Boolean).sort();
     const uniqueMoods = [...new Set(verbCards.map(card => card.mood))].filter(Boolean).sort();
+    const uniqueSets = [...new Set(sentenceCards.map(card => card.set_name))].filter(Boolean).sort();
 
     return {
       verbs: uniqueVerbs,
       tenses: uniqueTenses,
       moods: uniqueMoods,
-      tenseMoodCombos: [...new Set(verbCards.map(card => `${card.tense}_${card.mood}`))].filter(combo => !combo.includes('undefined')).sort()
+      tenseMoodCombos: [...new Set(verbCards.map(card => `${card.tense}_${card.mood}`))].filter(combo => !combo.includes('undefined')).sort(),
+      sets: uniqueSets
     };
+  }
+
+  // Get unique sentence sets
+  async getUniqueSets() {
+    const sentenceCards = await this.getCards({ type: 'sentence' });
+    return [...new Set(sentenceCards.map(card => card.set_name))].filter(Boolean).sort();
   }
 }
 
