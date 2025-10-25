@@ -1380,9 +1380,14 @@ nav {
     }
 
     /* Fix flashcard layout for long sentences on mobile */
+    .study-session {
+        padding: 25px 20px;
+    }
+
     .flashcard-container {
         min-height: auto;
         align-items: stretch;
+        margin-bottom: 20px;
     }
 
     .flashcard {
@@ -1415,12 +1420,33 @@ nav {
         padding: 10px 15px;
     }
 
-    .study-session {
-        padding: 25px 20px;
+    /* Make study controls flow naturally after card content */
+    .study-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        width: 100%;
+        margin-top: 0;
     }
 
-    .study-controls {
-        margin-top: 20px;
+    .reveal-btn {
+        width: 100%;
+        padding: 15px 20px;
+        font-size: 1.1rem;
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        width: 100%;
+    }
+
+    .btn-side-stack,
+    .btn-primary {
+        width: 100%;
+        padding: 12px 20px;
+        font-size: 1rem;
     }
 }
 
