@@ -1378,6 +1378,50 @@ nav {
         grid-template-columns: 1fr;
         gap: 20px;
     }
+
+    /* Fix flashcard layout for long sentences on mobile */
+    .flashcard-container {
+        min-height: auto;
+        align-items: stretch;
+    }
+
+    .flashcard {
+        min-height: auto;
+    }
+
+    .flashcard .card-front,
+    .flashcard .card-back {
+        position: relative;
+        min-height: auto;
+        max-height: none;
+        height: auto;
+    }
+
+    .card-content {
+        padding: 20px 15px;
+    }
+
+    .sentence-prompt .english-translation {
+        font-size: 1.1rem;
+    }
+
+    .sentence-answer .spanish-sentence {
+        font-size: 1.1rem;
+    }
+
+    .grammar-notes {
+        font-size: 0.9rem;
+        max-width: 100%;
+        padding: 10px 15px;
+    }
+
+    .study-session {
+        padding: 25px 20px;
+    }
+
+    .study-controls {
+        margin-top: 20px;
+    }
 }
 
 /* Manage Cards styles */
