@@ -64,66 +64,91 @@ class SyncEngine {
     this.notifySyncListeners('sync_started');
 
     try {
-      console.log('Starting sync process...');
+      console.log('Starting bidirectional sync process...');
 
       let uploadedCount = 0;
-      let deletedCount = 0;
       let downloadedCount = 0;
 
-      // STEP 1: Upload unsynced local cards (including deletions)
+      // Step 1: Upload local changes
       const unsyncedCards = await cardDB.getUnsyncedCards();
 
       if (unsyncedCards.length > 0) {
-        console.log(`Uploading ${unsyncedCards.length} local cards (including deletions)...`);
+        console.log(`Uploading ${unsyncedCards.length} unsynced cards...`);
         const uploadResult = await this.uploadCards(unsyncedCards);
 
         if (uploadResult.success) {
-          // Mark cards as synced, and hard delete if they were deleted
-          for (const card of unsyncedCards) {
-            if (card.deleted) {
-              await cardDB.hardDeleteCard(card.id);
-              deletedCount++;
-            } else {
-              await cardDB.markCardsSynced([card.id]);
-            }
-          }
-
-          uploadedCount = unsyncedCards.filter(c => !c.deleted).length;
-          console.log(`${uploadedCount} cards uploaded, ${deletedCount} deletions synced`);
+          // Mark cards as synced
+          const cardIds = unsyncedCards.map(card => card.id);
+          await cardDB.markCardsSynced(cardIds);
+          uploadedCount = unsyncedCards.length;
+          console.log(`✓ Uploaded ${uploadedCount} cards`);
         } else {
           throw new Error(uploadResult.error || 'Upload failed');
         }
       }
 
-      // STEP 2: Download cards from server
+      // Step 2: Download cards from server
       console.log('Downloading cards from server...');
       const downloadResult = await this.downloadCards();
 
-      if (downloadResult.success && downloadResult.cards) {
-        console.log(`Received ${downloadResult.cards.length} cards from server`);
+      if (downloadResult.success) {
+        const serverCards = downloadResult.cards;
+        const localCards = await cardDB.getCards();
+        const localCardIds = new Set(localCards.map(card => card.id));
 
-        // Process downloaded cards
-        for (const card of downloadResult.cards) {
-          if (card.deleted) {
-            // If server says card is deleted, remove it locally
-            await cardDB.hardDeleteCard(card.id);
-          } else {
-            // Save/update card locally
-            await cardDB.saveCard(card, true); // true = mark as synced
+        // Filter out cards we already have
+        const newCards = serverCards.filter(card => !localCardIds.has(card.id));
+
+        if (newCards.length > 0) {
+          console.log(`Found ${newCards.length} new cards from other devices`);
+
+          // Separate by card type and save
+          const newVerbCards = newCards.filter(card => card.type === 'verb');
+          const newSentenceCards = newCards.filter(card => card.type === 'sentence');
+
+          for (const card of newVerbCards) {
+            // Save individual verb card
+            const verbData = {
+              verb: card.verb,
+              conjugations: [{
+                pronoun: card.pronoun,
+                tense: card.tense,
+                mood: card.mood,
+                form: card.conjugated_form
+              }]
+            };
+
+            // Manually create the card with existing ID
+            const transaction = cardDB.db.transaction(['cards'], 'readwrite');
+            const store = transaction.objectStore('cards');
+            card.sync_status = 'synced'; // Mark as already synced
+            await store.put(card);
           }
-        }
 
-        downloadedCount = downloadResult.cards.filter(c => !c.deleted).length;
-        console.log(`${downloadedCount} cards downloaded`);
+          for (const card of newSentenceCards) {
+            // Manually create the card with existing ID
+            const transaction = cardDB.db.transaction(['cards'], 'readwrite');
+            const store = transaction.objectStore('cards');
+            card.sync_status = 'synced'; // Mark as already synced
+            await store.put(card);
+          }
+
+          downloadedCount = newCards.length;
+          console.log(`✓ Downloaded ${downloadedCount} cards`);
+        } else {
+          console.log('No new cards to download');
+        }
+      } else {
+        console.warn('Download failed:', downloadResult.error);
+        // Don't throw - upload succeeded, download failure is non-fatal
       }
 
       // Update last sync timestamp
       await cardDB.setSyncMetadata('last_sync', Date.now());
 
-      console.log(`Sync completed: ${uploadedCount} uploaded, ${deletedCount} deleted, ${downloadedCount} downloaded`);
+      console.log(`Sync completed: ${uploadedCount} uploaded, ${downloadedCount} downloaded`);
       this.notifySyncListeners('sync_completed', {
         uploaded: uploadedCount,
-        deleted: deletedCount,
         downloaded: downloadedCount
       });
 
@@ -166,7 +191,7 @@ class SyncEngine {
     }
   }
 
-  // Download cards from server
+  // Download cards from server that were created on other devices
   async downloadCards() {
     try {
       const response = await fetch(`${this.syncEndpoint}/api/cards`, {
