@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Device ID</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      max-width: 500px;
+      width: 100%;
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 24px;
+    }
+    #device-id {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 20px;
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      word-break: break-all;
+      margin: 20px 0;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+    .status {
+      font-size: 14px;
+      opacity: 0.8;
+      margin-top: 10px;
+    }
+    button {
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid white;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: all 0.3s;
+    }
+    button:active {
+      transform: scale(0.95);
+      background: rgba(255, 255, 255, 0.3);
+    }
+    .copied {
+      color: #4ade80;
+      font-weight: bold;
+      margin-top: 10px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .copied.show {
+      opacity: 1;
+    }
+    .back-link {
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    .back-link a {
+      color: white;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📱 Your Device ID</h1>
+    <p class="status">Status: <span id="status">Loading...</span></p>
+    <div id="device-id">Loading device ID...</div>
+    <button onclick="copyToClipboard()">Copy to Clipboard</button>
+    <div class="copied" id="copied-msg">✓ Copied!</div>
+    <p style="font-size: 14px; margin-top: 20px; opacity: 0.8;">
+      Send this ID to yourself to add to Railway's ALLOWED_DEVICE_IDS
+    </p>
+    <div class="back-link">
+      <a href="index.html">← Back to Spanish Cards</a>
+    </div>
+  </div>
+
+  <script>
+    function updateDeviceId() {
+      const deviceId = localStorage.getItem('spanish_cards_device_id');
+
+      if (deviceId) {
+        document.getElementById('device-id').textContent = deviceId;
+        document.getElementById('status').textContent = 'Found ✓';
+        document.getElementById('status').style.color = '#4ade80';
+      } else {
+        document.getElementById('device-id').textContent = 'No device ID found. Please open the main Spanish Cards app first, then return here.';
+        document.getElementById('status').textContent = 'Not Found ✗';
+        document.getElementById('status').style.color = '#f87171';
+      }
+    }
+
+    function copyToClipboard() {
+      const deviceId = localStorage.getItem('spanish_cards_device_id');
+      if (deviceId) {
+        // Try modern clipboard API first
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(deviceId).then(() => {
+            showCopiedMessage();
+          }).catch(() => {
+            // Fallback for older mobile browsers
+            fallbackCopy(deviceId);
+          });
+        } else {
+          fallbackCopy(deviceId);
+        }
+      }
+    }
+
+    function fallbackCopy(text) {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showCopiedMessage();
+      } catch (err) {
+        alert('Could not copy. Please manually select and copy the ID above.');
+      }
+      document.body.removeChild(textArea);
+    }
+
+    function showCopiedMessage() {
+      const msg = document.getElementById('copied-msg');
+      msg.classList.add('show');
+      setTimeout(() => {
+        msg.classList.remove('show');
+      }, 2000);
+    }
+
+    // Update on page load
+    updateDeviceId();
+
+    // Check periodically in case user navigates here before visiting main app
+    setInterval(updateDeviceId, 2000);
+  </script>
+</body>
+</html>
