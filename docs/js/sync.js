@@ -93,51 +93,55 @@ class SyncEngine {
 
       if (downloadResult.success) {
         const serverCards = downloadResult.cards;
-        const localCards = await cardDB.getCards();
-        const localCardIds = new Set(localCards.map(card => card.id));
+        const localCards = await cardDB.getCards({ includeDeleted: true }); // Include deleted for comparison
+        const localCardMap = new Map(localCards.map(card => [card.id, card]));
 
-        // Filter out cards we already have
-        const newCards = serverCards.filter(card => !localCardIds.has(card.id));
+        let newCount = 0;
+        let updatedCount = 0;
+        let deletedCount = 0;
 
-        if (newCards.length > 0) {
-          console.log(`Found ${newCards.length} new cards from other devices`);
+        const transaction = cardDB.db.transaction(['cards'], 'readwrite');
+        const store = transaction.objectStore('cards');
 
-          // Separate by card type and save
-          const newVerbCards = newCards.filter(card => card.type === 'verb');
-          const newSentenceCards = newCards.filter(card => card.type === 'sentence');
+        for (const serverCard of serverCards) {
+          const localCard = localCardMap.get(serverCard.id);
 
-          for (const card of newVerbCards) {
-            // Save individual verb card
-            const verbData = {
-              verb: card.verb,
-              conjugations: [{
-                pronoun: card.pronoun,
-                tense: card.tense,
-                mood: card.mood,
-                form: card.conjugated_form
-              }]
-            };
+          if (!localCard) {
+            // New card from server
+            serverCard.sync_status = 'synced';
+            await store.put(serverCard);
+            newCount++;
 
-            // Manually create the card with existing ID
-            const transaction = cardDB.db.transaction(['cards'], 'readwrite');
-            const store = transaction.objectStore('cards');
-            card.sync_status = 'synced'; // Mark as already synced
-            await store.put(card);
+          } else if (serverCard.modified_at > localCard.modified_at) {
+            // Server has newer version - update local
+            serverCard.sync_status = 'synced';
+            await store.put(serverCard);
+
+            if (serverCard.deleted) {
+              deletedCount++;
+            } else {
+              updatedCount++;
+            }
           }
-
-          for (const card of newSentenceCards) {
-            // Manually create the card with existing ID
-            const transaction = cardDB.db.transaction(['cards'], 'readwrite');
-            const store = transaction.objectStore('cards');
-            card.sync_status = 'synced'; // Mark as already synced
-            await store.put(card);
-          }
-
-          downloadedCount = newCards.length;
-          console.log(`✓ Downloaded ${downloadedCount} cards`);
-        } else {
-          console.log('No new cards to download');
+          // else: local is newer or same, keep local version
         }
+
+        await new Promise((resolve, reject) => {
+          transaction.oncomplete = () => resolve();
+          transaction.onerror = () => reject(transaction.error);
+        });
+
+        downloadedCount = newCount + updatedCount + deletedCount;
+
+        if (downloadedCount > 0) {
+          console.log(`✓ Downloaded changes: ${newCount} new, ${updatedCount} updated, ${deletedCount} deleted`);
+        } else {
+          console.log('No new changes to download');
+        }
+
+        // Clean up synced deletions
+        await cardDB.cleanupDeletedCards();
+
       } else {
         console.warn('Download failed:', downloadResult.error);
         // Don't throw - upload succeeded, download failure is non-fatal

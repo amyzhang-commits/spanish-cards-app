@@ -375,6 +375,11 @@ class ManageCardsApp {
       this.updateStats();
       this.updateBulkActionsVisibility();
       this.updateSelectedCount();
+
+      // Trigger sync if online
+      if (navigator.onLine && typeof syncEngine !== 'undefined') {
+        syncEngine.syncCards();
+      }
     } catch (error) {
       console.error('Failed to delete card:', error);
       alert('Failed to delete card: ' + error.message);
@@ -396,6 +401,11 @@ class ManageCardsApp {
         this.updateStats();
         this.updateBulkActionsVisibility();
         this.updateSelectedCount();
+
+        // Trigger sync if online
+        if (navigator.onLine && typeof syncEngine !== 'undefined') {
+          syncEngine.syncCards();
+        }
       } catch (error) {
         console.error('Failed to delete cards:', error);
         alert('Failed to delete some cards: ' + error.message);
@@ -556,9 +566,18 @@ class ManageCardsApp {
     const transaction = cardDB.db.transaction(['cards'], 'readwrite');
     const store = transaction.objectStore('cards');
 
+    // Mark as modified and needs sync
+    card.modified_at = Date.now();
+    card.sync_status = 'local';
+
     // Update the existing card
     await store.put(card);
     await transaction.complete;
+
+    // Trigger sync if online
+    if (navigator.onLine && typeof syncEngine !== 'undefined') {
+      syncEngine.syncCards();
+    }
   }
 
   cancelEdit(cardId) {
